@@ -1,0 +1,107 @@
+pipeline {
+    agent any
+
+    environment {
+        NODE_VERSION = '16.x' // Replace with the required Node.js version
+    }
+
+    stages {
+        stage('Setup') {
+            steps {
+                echo "Installing Node.js and dependencies..."
+                sh 'curl -sL https://deb.nodesource.com/setup_${NODE_VERSION} | bash -'
+                sh 'apt-get install -y nodejs'
+                sh 'node -v'
+                sh 'npm -v'
+            }
+        }
+
+        stage('Checkout Code') {
+            steps {
+                echo "Checking out code from repository..."
+                git branch: 'main', url: 'https://github.com/your-repo/currency-converter.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                echo "Installing dependencies..."
+                sh 'npm install'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                echo "Running tests..."
+                sh 'npm test' // Ensure you have tests defined in the project
+            }
+        }
+
+        stage('Run Script') {
+            steps {
+                echo "Executing currency converter script..."
+                sh 'node currency.js'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                echo "Packaging application..."
+                sh 'zip -r currency-converter.zip .'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo "Deploying the application..."
+                // Replace with deployment logic (e.g., upload to a server)
+                sh 'scp currency-converter.zip user@server:/path/to/deploy'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully."
+        }
+        failure {
+            echo "Pipeline failed. Check logs for details."
+        }
+    }
+}
+--------------------------------------------------------------------------------------------------------
+
+const axios = require('axios');
+
+// Function to convert currency
+const convertCurrency = async (amount, fromCurrency, toCurrency) => {
+  const apiKey = 'YOUR_API_KEY'; // Replace with your API key
+  const url = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/${fromCurrency}`;
+
+  try {
+    // Fetch exchange rates from the API
+    const response = await axios.get(url);
+
+    if (response.data.result === 'success') {
+      const exchangeRate = response.data.conversion_rates[toCurrency];
+      if (exchangeRate) {
+        const convertedAmount = (amount * exchangeRate).toFixed(2);
+        console.log(`${amount} ${fromCurrency} is equal to ${convertedAmount} ${toCurrency}`);
+      } else {
+        console.log(`Error: Could not get the exchange rate for ${toCurrency}`);
+      }
+    } else {
+      console.log('Error: Could not fetch exchange rates');
+    }
+  } catch (error) {
+    console.error('Error fetching exchange rates:', error.message);
+  }
+};
+
+// Example usage: Convert 100 USD to EUR
+const amount = 100;
+const fromCurrency = 'USD';
+const toCurrency = 'EUR';
+
+convertCurrency(amount, fromCurrency, toCurrency);
+
